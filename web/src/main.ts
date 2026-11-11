@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 import "./styles.css";
 
-const HONESTY = [
+export const HONESTY = [
   "Simulation only",
   "Synthetic fleet scenarios; not a live allocator",
   "Recorded CI output; this page does not run the simulator",
@@ -117,4 +117,10 @@ function render(report: Report | null): void {
   drawCanvas(report.rows.filter((r) => r.expected === "pass"));
 }
 
-loadReport().then(render);
+export function bootDashboard(): void {
+  void loadReport().then(render);
+}
+
+if (import.meta.env.MODE !== "test") {
+  bootDashboard();
+}

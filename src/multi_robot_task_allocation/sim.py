@@ -658,6 +658,17 @@ class Simulator:
             self.pending_zones.add(zid)
             self.assigned_zones.discard(zid)
             self.scheduled_zones.discard(zid)
+        horizon = self.scenario.T_horizon
+        for site_id in list(self.calendar.intervals.keys()):
+            if self.calendar.block_from_death(site_id, rid, t, horizon):
+                for rec in self.log.occupy:
+                    if (
+                        rec["site_id"] == site_id
+                        and rec["robot_id"] == rid
+                        and rec["start"] <= t + 1e-12
+                        and t < rec["end"] - 1e-12
+                    ):
+                        rec["end"] = max(float(rec["end"]), horizon)
         ev = SimEvent(t, "battery_empty", rid, {})
         if record_now:
             self._record(ev)

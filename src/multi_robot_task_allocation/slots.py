@@ -58,3 +58,21 @@ class SlotCalendar:
             iv for iv in self.intervals[site_id]
             if not (iv.robot_id == robot_id and iv.start >= from_t - 1e-12)
         ]
+
+    def block_from_death(
+        self, site_id: str, robot_id: str, death_t: float, horizon: float
+    ) -> bool:
+        """If the robot occupies site_id at death_t, extend that interval to horizon.
+
+        Normal charging cannot empty the battery, so callers inject this
+        terminal failure. Returns True if a current occupy interval was extended.
+        """
+        found = False
+        for iv in self.committed(site_id):
+            if iv.robot_id != robot_id:
+                continue
+            if iv.start <= death_t + 1e-12 and death_t < iv.end - 1e-12:
+                if horizon > iv.end:
+                    iv.end = horizon
+                found = True
+        return found
