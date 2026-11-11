@@ -20,7 +20,7 @@ In v1:
 
 - One package `multi_robot_task_allocation`, console script `mrta`, Python and NumPy only in the core.
 - A 20 m x 16 m synthetic bay, 4 robots, 8 coverage zones, static-graph Dijkstra, linear battery, discrete-event simulation.
-- Greedy, Kuhn-Munkres, and a Bertsekas-style auction, plus `random` and `never_charge` mutants.
+- Greedy, exact enumeration labelled Hungarian, and a Bertsekas-style auction, plus `random` and `never_charge` mutants.
 - Schema-v1 JSON report, Vite + Canvas dashboard, Playwright smoke, one CI workflow.
 
 Do not depend on, submodule, vendor, or copy these.
@@ -191,30 +191,32 @@ World sha256 recorded for S1 seed `20261111` by the prototype's canonical encode
 
 Timeouts, crashes, and NaNs are infrastructure failures. They are never successes and never expected mutant passes.
 
-### Decision I - prototype record, 2026-11-11
+### Decision I - ship record, 2026-11-11
 
 A Python / NumPy prototype of the generator, graph, battery, wrapper, `next_fit`, greedy, a brute-force cardinality-then-cost assignment (labelled Hungarian here), the auction, both mutants, and the event-like commit loop was run on every eval and dev seed. Unit checks for the 10 m SOC fraction, the 2x3 hand matrix (sum 6, pairs `(0, 2)` and `(1, 1)`), the auction bound on that matrix, and the Dijkstra parent hand case all passed. Wall time for the full suite was 0.2 s on a local CPU (Python 3.13, numpy 2.5.4).
 
 Existence witnesses: greedy, Hungarian, and auction each produced a complete zero-death, zero-conflict schedule on every eval seed, with makespan `<=` the frozen horizon. Those measured complete runs are the constructive feasibility witnesses. A serial one-robot witness is not required to beat the horizon.
 
+The figures in the original Decision I draft are discarded prototype output and are not the ship record: S1 auction travel of 42.5 m vs greedy 52.4 m (and 41.7 m vs 51.5 m); S1 random cap of 151 s; S2 makespans greedy 154.04, 153.40, 154.04, Hungarian 154.04, 153.40, 154.51, auction 152.53, 151.94, 156.15; S2 charge wait "about 77-108 s"; S2 `never_charge` coverage fractions 0.875, 0.75, 0.875; S2 random makespans 272.20, 231.07, and a 201 s cap; S3 makespans 181.95, 183.78, 175.78 s; S4 seed `20261142` listed as 92.8; S4 seed `20261143` listed as greedy 102.1, Hungarian 92.0, auction 102.1. The ship numbers below are taken from the 55-row `report.json` (`sample: false`) at the shipped revision.
+
 Eval results used as ship numbers:
 
-**S1**, horizon 150 s. All three non-mutants: coverage 1.0, deaths 0, conflicts 0, makespan 60.90, 60.90, 60.94 s. Auction travel was 42.5 m vs greedy 52.4 m on seed `20261111`, and 41.7 m vs 51.5 m on `20261112`; makespans were tied. Random failed all three seeds (coverage 0.625, capped makespan 151 s).
+**S1**, horizon 150 s. All three non-mutants: coverage 1.0, deaths 0, conflicts 0, makespan 60.90, 60.90, 60.94 s (greedy, Hungarian, and auction tied on each seed). Travel is also tied: 52.39 m on seed `20261111`, 51.52 m on `20261112`, and 73.41 m on `20261113`. Auction does not travel less than greedy. Random failed all three seeds (coverage incomplete, makespan capped at the frozen horizon of 150.0 s).
 
-**S2**, horizon 200 s, start SOC 0.35. Non-mutant makespans: greedy 154.04, 153.40, 154.04; Hungarian 154.04, 153.40, 154.51; auction 152.53, 151.94, 156.15. Deaths 0, coverage 1.0, conflicts 0. Charge wait was real (about 77-108 s fleet total). `never_charge` failed all three seeds with deaths 4, 4, 4 and coverage 0.875, 0.75, 0.875. Random failed all three (makespans 272.20, 231.07, and a 201 s cap with coverage 0.875).
+**S2**, horizon 200 s, start SOC 0.35. Non-mutant makespans: 133.86, 167.48, 139.99 s, with greedy, Hungarian, and auction tied on each seed. Deaths 0, coverage 1.0, conflicts 0. Charge wait was real (fleet totals 96.62, 92.43, and 87.86 s). `never_charge` failed all three seeds with deaths 4, 4, 4 and coverage incomplete. Random failed all three (makespan capped at the frozen horizon of 200.0 s, deaths 4, coverage incomplete).
 
-**S3**, horizon 300 s, one dock. All three non-mutants: coverage 1.0, deaths 0, conflicts 0, makespan 181.95, 183.78, 175.78 s. Fleet dock wait was strictly positive on every eval seed and every non-mutant (minimum 1.84 s, typically 7.90 s). Random failed all three (coverage 0.50-0.625).
+**S3**, horizon 300 s, one dock. All three non-mutants: coverage 1.0, deaths 0, conflicts 0, makespan 269.54, 267.71, 250.39 s (allocators tied on each seed). Fleet dock wait was strictly positive on every eval seed and every non-mutant (minimum 1.84 s, 7.90 s on six of the nine rows). Random failed all three (coverage incomplete, makespan capped at the frozen horizon of 300.0 s).
 
 **S4**, horizon 200 s. Non-mutant coverage 1.0, deaths 0, conflicts 0. Makespans:
 
 | seed | greedy | Hungarian | auction | Hungarian `<=` greedy | strict gap |
 | --- | --- | --- | --- | --- | --- |
-| 20261141 | 80.4 | 80.4 | 80.4 | yes | no |
-| 20261142 | 92.8 | 92.8 | 92.8 | yes | no |
-| 20261143 | 102.1 | 92.0 | 102.1 | yes | yes |
-| 20261144 | 113.6 | 113.6 | 113.6 | yes | no |
+| 20261141 | 80.37 | 80.37 | 80.37 | yes | no |
+| 20261142 | 85.47 | 85.47 | 85.47 | yes | no |
+| 20261143 | 103.59 | 92.00 | 92.00 | yes | yes |
+| 20261144 | 113.57 | 113.57 | 113.57 | yes | no |
 
-**S4 quality gate, frozen honestly:** all three non-mutants complete with zero deaths and zero conflicts and makespan `<= 200`. Hungarian makespan is `<=` greedy on all four eval seeds. Do **not** require a strict gap on at least half the seeds (only one of four was strict). Auction may tie greedy. Report all twelve makespans.
+**S4 quality gate, frozen honestly:** all three non-mutants complete with zero deaths and zero conflicts and makespan `<= 200`. Hungarian makespan is `<=` greedy on all four eval seeds. Do **not** require a strict gap on at least half the seeds (only one of four was strict, seed `20261143`). On that seed, auction ties Hungarian, not greedy. Report all twelve makespans.
 
 Draft values that were rejected: S2 start SOC 0.45 (never-charge could finish); S4 area-16 resize (rectangles would leave the inset); horizons 360 / 540 / 720 / 480 (loose enough that random finished); S3 with two docks (dock wait was often 0).
 
@@ -226,7 +228,7 @@ Report fields: `schema_version`, `sample` bool, `git_sha`, `run_id`, `gate_versi
 
 Traces: every non-mutant allocator on the first eval seed of each family, plus `random` and `never_charge` on S2 seed `20261121`. Draw the Gantt from exact action intervals; the 1 Hz pose sample is for the map only and is labelled sampled.
 
-Vite + TypeScript + Canvas 2D. Base path `/multi-robot-task-allocation/`. Playwright, Chromium only. `docs/demo.png` is checked in once from a local Playwright capture at 1280x720. CI uploads a screenshot and does not commit it. A sample report is committed with `sample: true`. The deployed CI report has `sample: false` and must not silently fall back to the sample on `main`. Missing or malformed report: visible error state, no sample banner.
+Vite + TypeScript + Canvas 2D. Base path `/multi-robot-task-allocation/`. Playwright, Chromium only. `docs/demo.png` is checked in once from a local Playwright capture at 1280x720. CI uploads the Playwright screenshot at `web/artifacts/demo.png` as the `playwright-shot` artifact and does not commit it. A sample report is committed with `sample: true`. The deployed CI report has `sample: false` and must not silently fall back to the sample on `main`. Missing or malformed report: visible error state, no sample banner.
 
 HTML document title contains `simulation only`. Visible text, exact:
 

@@ -18,7 +18,7 @@ This demo must not duplicate existing applycoding repos. The closest are [applyc
 
 - URL: https://github.com/scipy/scipy
 - License: **BSD-3-Clause** (`gh api` SPDX: BSD-3-Clause; LICENSE: https://github.com/scipy/scipy/blob/main/LICENSE.txt, HTTP 200 on 2026-11-11)
-- Borrow: the *idea* of linear sum assignment. This demo implements Kuhn-Munkres from first principles and does not depend on SciPy.
+- Borrow: the *idea* of linear sum assignment. This demo does not depend on SciPy. The allocator labelled Hungarian is exact enumeration of assignments, which is sufficient for this 4-robot fleet. Tests check its cardinality and finite cost-sum against a test-only Kuhn-Munkres oracle. The shipped allocator is not a Kuhn-Munkres implementation.
 
 ### 3. networkx/networkx
 

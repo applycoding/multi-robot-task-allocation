@@ -3,6 +3,9 @@ multi-robot-task-allocation, Copyright 2026 Arpan Bom
 This product is licensed under the Apache License, Version 2.0.
 See the LICENSE file and https://www.apache.org/licenses/LICENSE-2.0
 
+Idea references (assignment, auction, shortest-path, and related citations)
+are listed in REFERENCES.md. This NOTICE does not repeat those citations.
+
 Third-party dependencies (direct):
 
 Python (see requirements.lock for hashed wheels):
@@ -21,3 +24,18 @@ Node.js (web/dashboard):
 - vitest 5.1.0 (MIT)
 - @playwright/test 1.65.0 (Apache-2.0)
 - @types/node 26.6.6 (MIT)
+
+GitHub Actions used by .github/workflows/ci.yml (pinned by commit SHA):
+- actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+- actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0
+- actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
+- actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
+- actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333
+- actions/configure-pages@45bfe0192ca1faeb007ade9deae92b16b8254a0d
+- actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9
+- actions/deploy-pages@368f82528645a54fb793d4d04e342629a3f51346
+
+CI browser downloads used by Playwright 1.65.0 (not vendored in this repo):
+- Chrome for Testing 158.0.8127.18 (Playwright Chromium v1254)
+- Chrome Headless Shell 158.0.8127.18 (Playwright chromium-headless-shell v1254)
+- Playwright ffmpeg v1013

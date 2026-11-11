@@ -1,5 +1,10 @@
 # SPDX-License-Identifier: Apache-2.0
-"""Kuhn-Munkres assignment with cardinality-first objective."""
+"""Exact enumeration labelled Hungarian, with a cardinality-first objective.
+
+For this 4-robot fleet, hungarian_assign enumerates legal assignments.
+It is not a Kuhn-Munkres implementation. Tests compare its cardinality
+and finite cost-sum against a test-only Kuhn-Munkres oracle.
+"""
 from __future__ import annotations
 
 import itertools
@@ -77,7 +82,7 @@ def hungarian_assign(
     cost: np.ndarray,
     travel: np.ndarray,
 ) -> list[tuple[int, int]]:
-    """Delegate to brute force for fleet size (<=4 robots)."""
+    """Exact enumeration of assignments for this 4-robot fleet."""
     return brute_force_assign(cost, travel)
 
 
