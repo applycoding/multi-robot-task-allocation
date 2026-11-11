@@ -38,3 +38,10 @@ test("no sample banner when sample is false", async ({ page }) => {
   await expect(page.locator("#sample-banner")).toHaveCount(0);
   await expect(page.getByText("git_sha: 0123456789abcdef0123456789abcdef01234567")).toBeVisible();
 });
+
+test("capture dashboard screenshot", async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 720 });
+  await page.goto("./", { waitUntil: "networkidle" });
+  await page.screenshot({ path: "artifacts/demo.png" });
+});
+
