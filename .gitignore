@@ -1,0 +1,17 @@
+__pycache__/
+.venv/
+node_modules/
+dist/
+artifacts/
+.pytest_cache/
+.coverage
+htmlcov/
+coverage.xml
+.mypy_cache/
+.ruff_cache/
+*.egg-info/
+web/dist/
+playwright-report/
+test-results/
+report.json
+web/public/report.json

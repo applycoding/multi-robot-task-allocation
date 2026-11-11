@@ -1,0 +1,151 @@
+# SPDX-License-Identifier: Apache-2.0
+name: CI
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  core:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    env:
+      OMP_NUM_THREADS: "1"
+      OPENBLAS_NUM_THREADS: "1"
+      MKL_NUM_THREADS: "1"
+      NUMEXPR_NUM_THREADS: "1"
+      PYTHONHASHSEED: "0"
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          fetch-depth: 0
+          ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0
+        with:
+          python-version: "3.12"
+      - name: Install Python dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install --require-hashes -r requirements.lock
+          pip install . --no-deps
+      - name: Lint and typecheck
+        run: |
+          ruff check src tests
+          mypy src/multi_robot_task_allocation
+      - name: Fixture hash check
+        run: |
+          tmp=$(mktemp -d)
+          for f in fixtures/scenario_*.json; do
+            base=$(basename "$f" .json)
+            family=$(echo "$base" | sed -E 's/scenario_(s[1-4])_.*/\1/')
+            seed=$(echo "$base" | sed -E 's/.*_([0-9]+)$/\1/')
+            mrta generate --family "$family" --seed "$seed" --out "$tmp/$base.json"
+            diff -u "${f%.json}.json.sha256" "$tmp/${base}.json.sha256"
+          done
+      - name: Run sim suite and report
+        env:
+          GITHUB_SHA: ${{ github.sha }}
+        run: |
+          runs=$(mktemp -d)
+          chmod +x scripts/ci-run-report.sh
+          RUNS_DIR="$runs" scripts/ci-run-report.sh "$runs" "$GITHUB_SHA"
+          mkdir -p artifacts/runlogs
+          cp "$runs"/*.json artifacts/runlogs/
+          cp report.json artifacts/
+      - name: Tests and coverage
+        run: pytest --cov=multi_robot_task_allocation --cov-fail-under=80
+      - name: Honesty checks
+        run: |
+          chmod +x scripts/*.sh
+          ./scripts/author-check.sh
+          ./scripts/license-bytes.sh
+          ./scripts/dash-check.sh
+        env:
+          GIT_COMMITTER_NAME: Arpan Bom
+          GIT_COMMITTER_EMAIL: applycoding@gmail.com
+      - name: Upload report artifacts
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
+        with:
+          name: report
+          path: report.json
+      - name: Upload runlogs
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
+        with:
+          name: runlogs
+          path: artifacts/runlogs
+
+  web:
+    needs: [core]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          fetch-depth: 0
+          ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333
+        with:
+          name: report
+          path: report-artifact
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
+        with:
+          node-version: "26.13.0"
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+      - name: Build dashboard
+        run: |
+          cd web
+          npm ci
+          npx tsc --noEmit
+          npx vitest run
+          test -f ../report-artifact/report.json
+          cp ../report-artifact/report.json public/report.json
+          npx vite build --base /multi-robot-task-allocation/
+          npx playwright install chromium
+          npx playwright test
+      - name: Upload web dist
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
+        with:
+          name: web-dist
+          path: web/dist
+      - name: Upload Playwright screenshot
+        if: success()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
+        with:
+          name: playwright-shot
+          path: web/playwright-report
+
+  pages:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: [core, web]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          fetch-depth: 0
+          ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333
+        with:
+          name: web-dist
+          path: dist
+      - uses: actions/configure-pages@45bfe0192ca1faeb007ade9deae92b16b8254a0d
+      - uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9
+        with:
+          path: dist
+      - name: Deploy Pages
+        id: deployment
+        uses: actions/deploy-pages@368f82528645a54fb793d4d04e342629a3f51346

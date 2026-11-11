@@ -8,4 +8,6 @@ Simulation-only fleet lab: assign coverage zones, and insert docking and chargin
 
 The Pages site, once enabled after a green CI run, loads recorded results. It does not run the allocator or the simulator.
 
+Hungarian optimality applies only to one frozen epoch cost matrix, not to the closed-loop schedule. The charge wrapper is myopic. Sequential slot revalidation can drop a pair that was feasible when the epoch matrix was built. Auction is epsilon-optimal within OPT + 2.0 seconds on the epoch's real-real finite cost sum.
+
 See `PLAN.md` for the locked design, `TASKS.md` for the build sequence, and `REFERENCES.md` for idea-only citations. Outbound license is Apache-2.0. Author: Arpan Bom.
